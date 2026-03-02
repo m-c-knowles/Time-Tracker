@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simple Time Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #ea580c;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .big-button {
+            padding: 1.25rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-radius: 1rem;
+            transition: transform 0.1s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .big-button:active {
+            transform: scale(0.98);
+        }
+        .timer-display {
+            font-variant-numeric: tabular-nums;
+            font-size: 4.5rem;
+            font-weight: 800;
+            line-height: 1;
+            color: #1e293b;
+        }
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+        }
+        .nav-active {
+            color: var(--primary) !important;
+        }
+        .pulse {
+            animation: pulse-animation 2s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        input, select, textarea {
+            font-size: 16px !important; /* Prevents iOS zoom */
+        }
+    </style>
+</head>
+<body class="pb-24">
+
+    <!-- Header / Status Bar -->
+    <nav class="bg-white border-b sticky top-0 z-50 px-4 py-3 flex justify-between items-center h-16">
+        <h1 class="text-xl font-black text-blue-600 uppercase tracking-tight">TimeTracker</h1>
+        <div id="status-indicator" class="hidden flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full font-bold text-xs pulse">
+            <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
+            RECORDING
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main id="app-content" class="max-w-md mx-auto p-4 min-h-[80vh]">
+        <!-- Content injected by JS -->
+    </main>
+
+    <!-- Modal Overlay -->
+    <div id="modal-container" class="fixed inset-0 bg-black/50 z-[100] hidden flex items-center justify-center p-4">
+        <div id="modal-content" class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl"></div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <button onclick="showScreen('timer')" class="flex flex-col items-center p-2 text-gray-400 nav-link" id="nav-timer">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-[10px] font-bold uppercase mt-1">Timer</span>
+        </button>
+        <button onclick="showScreen('log')" class="flex flex-col items-center p-2 text-gray-400 nav-link" id="nav-log">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            <span class="text-[10px] font-bold uppercase mt-1">Log</span>
+        </button>
+        <button onclick="showScreen('entities')" class="flex flex-col items-center p-2 text-gray-400 nav-link" id="nav-entities">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+            <span class="text-[10px] font-bold uppercase mt-1">Clients</span>
+        </button>
+        <button onclick="showScreen('reports')" class="flex flex-col items-center p-2 text-gray-400 nav-link" id="nav-reports">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <span class="text-[10px] font-bold uppercase mt-1">Report</span>
+        </button>
+    </nav>
+
+    <script>
+        // --- DATA STATE ---
+        let state = {
+            entities: JSON.parse(localStorage.getItem('tt_entities')) || [],
+            logs: JSON.parse(localStorage.getItem('tt_logs')) || [],
+            activeTimer: JSON.parse(localStorage.getItem('tt_active')) || null, 
+            currentScreen: 'timer'
+        };
+
+        let timerInterval = null;
+
+        // --- UTILITIES ---
+        function saveState() {
+            localStorage.setItem('tt_entities', JSON.stringify(state.entities));
+            localStorage.setItem('tt_logs', JSON.stringify(state.logs));
+            localStorage.setItem('tt_active', JSON.stringify(state.activeTimer));
+        }
+
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function getEntity(id) {
+            return state.entities.find(e => e.id === id);
+        }
+
+        // --- SCREEN ROUTING ---
+        function showScreen(screen) {
+            state.currentScreen = screen;
+            render();
+        }
+
+        // --- ACTIONS ---
+        function addEntity() {
+            const name = document.getElementById('ent-name').value;
+            const code = document.getElementById('ent-code').value;
+
+            if (!name || !code) return alert("Please fill in Name and Job Code");
+
+            state.entities.push({
+                id: Date.now().toString(),
+                name,
+                code,
+                created: new Date().toISOString()
+            });
+            saveState();
+            closeModal();
+            render();
+        }
+
+        function startTimer(entityId) {
+            if (state.activeTimer) {
+                if (!confirm("Stop the current timer and start this one instead?")) return;
+                stopTimer();
+            }
+            const entity = getEntity(entityId);
+            state.activeTimer = {
+                entityId: entityId,
+                startTime: new Date().toISOString(),
+                jobCode: entity.code,
+                notes: ""
+            };
+            saveState();
+            render();
+        }
+
+        function stopTimer() {
+            if (!state.activeTimer) return;
+            
+            const endTime = new Date();
+            const startTime = new Date(state.activeTimer.startTime);
+            const durationMs = endTime - startTime;
+            
+            if (durationMs < 10000) { 
+                if (!confirm("This session was very short. Save it anyway?")) {
+                    state.activeTimer = null;
+                    saveState();
+                    render();
+                    return;
+                }
+            }
+
+            const entity = getEntity(state.activeTimer.entityId);
+            
+            state.logs.unshift({
+                id: Date.now().toString(),
+                entityId: state.activeTimer.entityId,
+                entityName: entity ? entity.name : 'Deleted Client',
+                jobCode: state.activeTimer.jobCode,
+                startTime: state.activeTimer.startTime,
+                endTime: endTime.toISOString(),
+                durationMs: durationMs,
+                notes: state.activeTimer.notes
+            });
+
+            state.activeTimer = null;
+            saveState();
+            render();
+        }
+
+        function deleteLog(id) {
+            if (confirm("Delete this time entry permanently?")) {
+                state.logs = state.logs.filter(l => l.id !== id);
+                saveState();
+                render();
+            }
+        }
+
+        function deleteEntity(id) {
+            if (confirm("Delete this client? Past logs will be kept but the client will be removed from your list.")) {
+                state.entities = state.entities.filter(e => e.id !== id);
+                saveState();
+                render();
+            }
+        }
+
+        // --- MODALS ---
+        function openModal(type) {
+            const container = document.getElementById('modal-container');
+            const content = document.getElementById('modal-content');
+            container.classList.remove('hidden');
+
+            if (type === 'add-entity') {
+                content.innerHTML = `
+                    <h2 class="text-xl font-bold mb-4">New Client</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase">Client/Company Name</label>
+                            <input id="ent-name" type="text" class="w-full border p-3 rounded-lg bg-gray-50" placeholder="e.g. Acme Corp">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase">Job / Project Code</label>
+                            <input id="ent-code" type="text" class="w-full border p-3 rounded-lg bg-gray-50" placeholder="e.g. BILL-001">
+                        </div>
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="closeModal()" class="flex-1 p-3 font-bold text-gray-500">Cancel</button>
+                            <button onclick="addEntity()" class="flex-1 p-3 bg-blue-600 text-white rounded-xl font-bold">Save Client</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal-container').classList.add('hidden');
+        }
+
+        // --- RENDERING ---
+        function render() {
+            const content = document.getElementById('app-content');
+            const statusIndicator = document.getElementById('status-indicator');
+            
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('nav-active');
+                if (link.id === `nav-${state.currentScreen}`) link.classList.add('nav-active');
+            });
+
+            if (state.activeTimer) {
+                statusIndicator.classList.remove('hidden');
+            } else {
+                statusIndicator.classList.add('hidden');
+            }
+
+            if (state.currentScreen === 'timer') {
+                renderTimerScreen(content);
+            } else if (state.currentScreen === 'log') {
+                renderLogScreen(content);
+            } else if (state.currentScreen === 'entities') {
+                renderEntitiesScreen(content);
+            } else if (state.currentScreen === 'reports') {
+                renderReportsScreen(content);
+            }
+        }
+
+        function renderTimerScreen(el) {
+            if (state.activeTimer) {
+                const entity = getEntity(state.activeTimer.entityId);
+                el.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-10 space-y-8 animate-in fade-in duration-500">
+                        <div class="text-center">
+                            <p class="text-blue-600 font-black uppercase tracking-widest text-sm mb-1">Working for</p>
+                            <h2 class="text-3xl font-bold text-slate-800">${entity?.name || 'Unknown'}</h2>
+                            <p class="text-slate-400 font-medium">Code: ${state.activeTimer.jobCode}</p>
+                        </div>
+                        
+                        <div class="timer-display" id="live-timer">00:00:00</div>
+                        
+                        <div class="w-full space-y-4 pt-8">
+                            <textarea oninput="state.activeTimer.notes = this.value; saveState()" class="w-full p-4 card text-sm" placeholder="Add notes about what you're doing...">${state.activeTimer.notes}</textarea>
+                            <button onclick="stopTimer()" class="big-button bg-red-600 text-white h-24 shadow-xl shadow-red-200">
+                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"></path></svg>
+                                STOP & SAVE
+                            </button>
+                        </div>
+                    </div>
+                `;
+                startLiveUpdate();
+            } else {
+                let entityCards = state.entities.map(e => `
+                    <button onclick="startTimer('${e.id}')" class="card w-full p-6 text-left flex justify-between items-center group active:bg-blue-50">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800">${e.name}</h3>
+                            <p class="text-slate-400 text-sm font-medium">Job Code: ${e.code}</p>
+                        </div>
+                        <div class="bg-blue-50 text-blue-600 p-3 rounded-full group-active:bg-blue-600 group-active:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                        </div>
+                    </button>
+                `).join('');
+
+                if (state.entities.length === 0) {
+                    entityCards = `
+                        <div class="text-center py-20">
+                            <div class="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-800">No Clients Yet</h3>
+                            <p class="text-slate-500 mb-6">Add your first client to start tracking time.</p>
+                            <button onclick="showScreen('entities')" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">Add a Client</button>
+                        </div>
+                    `;
+                }
+
+                el.innerHTML = `
+                    <div class="space-y-4">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-6">Who are you working for?</h2>
+                        <div class="space-y-3">
+                            ${entityCards}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderLogScreen(el) {
+            if (state.logs.length === 0) {
+                el.innerHTML = `<div class="text-center py-20 text-slate-400 font-medium">No work entries recorded yet.</div>`;
+                return;
+            }
+
+            const entries = state.logs.map(log => {
+                const date = new Date(log.startTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                const timeStr = new Date(log.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const duration = (log.durationMs / 3600000).toFixed(2);
+                
+                return `
+                    <div class="card p-4 mb-3 border-l-4 border-l-blue-500">
+                        <div class="flex justify-between items-start mb-1">
+                            <div>
+                                <h4 class="font-bold text-slate-800">${log.entityName}</h4>
+                                <p class="text-xs text-slate-400 font-bold uppercase">${log.jobCode} &bull; ${date} @ ${timeStr}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xl font-black text-slate-800">${duration}<span class="text-xs ml-1 text-slate-400">HRS</span></p>
+                            </div>
+                        </div>
+                        ${log.notes ? `<p class="text-sm text-slate-600 mt-2 italic bg-slate-50 p-2 rounded">"${log.notes}"</p>` : ''}
+                        <div class="flex justify-end gap-4 mt-3 pt-3 border-t border-dashed">
+                             <button onclick="deleteLog('${log.id}')" class="text-red-500 text-xs font-bold uppercase tracking-wider">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            el.innerHTML = `
+                <h2 class="text-2xl font-bold text-slate-800 mb-6">Work History</h2>
+                ${entries}
+            `;
+        }
+
+        function renderEntitiesScreen(el) {
+            const list = state.entities.map(e => `
+                <div class="card p-4 mb-3 flex justify-between items-center">
+                    <div>
+                        <h4 class="font-bold text-slate-800">${e.name}</h4>
+                        <p class="text-sm text-slate-400">Job Code: ${e.code}</p>
+                    </div>
+                    <button onclick="deleteEntity('${e.id}')" class="p-2 text-slate-300 hover:text-red-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+            `).join('');
+
+            el.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800">Your Clients</h2>
+                    <button onclick="openModal('add-entity')" class="bg-blue-600 text-white p-2 rounded-full shadow-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    </button>
+                </div>
+                ${state.entities.length === 0 ? '<p class="text-center text-slate-400 py-10">Add clients using the + button above.</p>' : list}
+            `;
+        }
+
+        function renderReportsScreen(el) {
+            const totals = {};
+            state.logs.forEach(log => {
+                if (!totals[log.entityName]) totals[log.entityName] = 0;
+                totals[log.entityName] += log.durationMs;
+            });
+
+            const summary = Object.entries(totals).map(([name, ms]) => `
+                <div class="flex justify-between items-center p-3 border-b">
+                    <span class="font-bold text-slate-700">${name}</span>
+                    <span class="font-mono bg-blue-50 px-2 py-1 rounded text-blue-700 font-bold">${(ms/3600000).toFixed(2)} hrs</span>
+                </div>
+            `).join('');
+
+            el.innerHTML = `
+                <h2 class="text-2xl font-bold text-slate-800 mb-6">Billing Summary</h2>
+                <div class="card overflow-hidden mb-8">
+                    <div class="bg-slate-50 p-4 border-b font-bold text-xs uppercase text-slate-400 tracking-wider">Total Hours by Client</div>
+                    ${summary || '<p class="p-8 text-center text-slate-400">No data available for reports.</p>'}
+                </div>
+
+                <div class="space-y-4">
+                    <button onclick="exportCSV()" class="big-button border-2 border-blue-600 text-blue-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Export CSV Spreadsheet
+                    </button>
+                </div>
+            `;
+        }
+
+        // --- EXPORT LOGIC ---
+        function exportCSV() {
+            if (state.logs.length === 0) return alert("Nothing to export.");
+            
+            let csv = "Date,Client,Job Code,Hours,Notes\n";
+            state.logs.forEach(log => {
+                const date = new Date(log.startTime).toLocaleDateString().replace(/,/g, '');
+                const hours = (log.durationMs / 3600000).toFixed(2);
+                const cleanNotes = (log.notes || "").replace(/"/g, '""');
+                csv += `${date},"${log.entityName}","${log.jobCode}",${hours},"${cleanNotes}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `time_report_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // --- LIVE TIMER LOOP ---
+        function startLiveUpdate() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                const el = document.getElementById('live-timer');
+                if (el && state.activeTimer) {
+                    const elapsed = new Date() - new Date(state.activeTimer.startTime);
+                    el.innerText = formatTime(elapsed);
+                } else {
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
+        }
+
+        window.onload = () => {
+            render();
+            if (state.activeTimer) startLiveUpdate();
+        };
+
+    </script>
+</body>
+</html>
